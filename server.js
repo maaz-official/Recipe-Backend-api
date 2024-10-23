@@ -16,11 +16,15 @@ const app = express();
 app.use(express.json());
 
 // CORS configuration
-const corsOptions = {
-    origin: 'http://localhost:8081', // Replace with your frontend URL
-    credentials: true, // Allow credentials such as cookies or authorization headers
-};
-app.use(cors(corsOptions));
+// const corsOptions = {
+//     origin: 'http://localhost:8081', // Replace with your frontend URL
+//     credentials: true, // Allow credentials such as cookies or authorization headers
+// };
+// app.use(cors(corsOptions));
+
+app.use(cors({
+    origin: 'http://localhost:8081' // Your frontend origin
+}));
 
 // Routes
 app.use('/api/recipes', recipeRoutes); // Ensure the '/api/recipes' route is working
@@ -29,6 +33,10 @@ app.use('/api/recipes', recipeRoutes); // Ensure the '/api/recipes' route is wor
 app.get('/', (req, res) => {
     res.json("API is Running");
 });
+
+app.listen(5000, () => {
+    console.log('API RUNNING')
+})
 
 // Export the app for Vercel
 export default app;

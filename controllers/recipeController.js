@@ -50,3 +50,52 @@ export const createRecipe = async (req, res) => {
     res.status(500).json({ message: 'Error creating the recipe' });
   }
 };
+
+
+// Delete a recipe by ID
+export const deleteRecipe = async (req, res) => {
+  try {
+    const recipe = await Recipe.findByIdAndDelete(req.params.id); // Find and delete the recipe by ID
+    if (recipe) {
+      res.json({ message: "Recipe deleted successfully" });
+    } else {
+      res.status(404).json({ message: "Recipe not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting the recipe' });
+  }
+};
+
+
+// Update a recipe by ID
+export const updateRecipe = async (req, res) => {
+  const { title, description, image, recipesImages, category, tags, preparationTime, cookingTime, servings, ingredients, instructions } = req.body;
+
+  try {
+    const updatedRecipe = await Recipe.findByIdAndUpdate(
+      req.params.id, // Find recipe by ID
+      {
+        title,
+        description,
+        image,
+        recipesImages,
+        category,
+        tags,
+        preparationTime,
+        cookingTime,
+        servings,
+        ingredients,
+        instructions,
+      },
+      { new: true } // Return the updated document
+    );
+
+    if (updatedRecipe) {
+      res.json(updatedRecipe);
+    } else {
+      res.status(404).json({ message: "Recipe not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating the recipe' });
+  }
+};
