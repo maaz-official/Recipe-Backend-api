@@ -17,7 +17,7 @@ app.use(express.json());
 
 // CORS configuration
 const corsOptions = {
-    origin: 'http://localhost:8081', // Allow your frontend URL
+    origin: ['http://localhost:8081', "http://localhost:3000"],
     credentials: true, // Allow credentials such as cookies or authorization headers
 };
 app.use(cors(corsOptions)); // Use CORS middleware with options
@@ -25,13 +25,21 @@ app.use(cors(corsOptions)); // Use CORS middleware with options
 // Routes
 app.use('/api/recipes', recipeRoutes); // Ensure the '/api/recipes' route is working
 
-// Default route for the root URL
-app.get('/', (req, res) => {
-    res.json("API is Running");
+// Default route for the health check
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'API is Running' });
 });
 
-app.listen(5000, () => {
-    console.log('API RUNNING');
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack); // Log the error stack
+    res.status(500).json({ message: 'Something went wrong!' });
+});
+
+// Start the server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`API RUNNING on port ${PORT}`);
 });
 
 // Export the app for Vercel
