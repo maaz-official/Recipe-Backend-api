@@ -17,10 +17,10 @@ app.use(express.json());
 
 // CORS configuration
 const corsOptions = {
-    origin: 'http://localhost:8081', // Replace with your frontend URL
+    origin: 'http://localhost:8081', // Allow your frontend URL
     credentials: true, // Allow credentials such as cookies or authorization headers
 };
-app.use(cors(corsOptions));
+app.use(cors(corsOptions)); // Use CORS middleware with options
 
 // Routes
 app.use('/api/recipes', recipeRoutes); // Ensure the '/api/recipes' route is working
@@ -31,8 +31,8 @@ app.get('/', (req, res) => {
 });
 
 app.listen(5000, () => {
-    console.log('API RUNNING')
-})
+    console.log('API RUNNING');
+});
 
 // Export the app for Vercel
 export default app;
