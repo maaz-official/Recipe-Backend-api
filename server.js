@@ -30,7 +30,7 @@ app.use('/api/users', userRoutes);
 // Error handling middleware - should be last
 app.use(errorHandler); // Catch all errors and send responses
 // Default route for the health check
-app.get('/health', (req, res) => {
+app.get('/', (req, res) => {
     res.status(200).json({ status: 'API is Running' });
 });
 
