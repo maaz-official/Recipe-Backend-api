@@ -1,61 +1,92 @@
 import asyncHandler from '../utils/asyncHandler.js';
+import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import generateToken from '../utils/generateToken.js';
-import Recipe from '../models/Recipe.js'; // Assuming Recipe model is used for favorites
-import sendSMS from '../utils/sendSMS.js'; // Utility to send SMS
+import { sendVerificationEmail } from '../utils/mailer.js'; // Import the mailer function
 
 // @desc Register a new user
 // @route POST /api/users/register
 // @access Public
 const registerUser = asyncHandler(async (req, res) => {
-    const { name, email, mobile, password } = req.body;
+    const { name, email, password } = req.body;
 
     // Validate input
-    if (!name || !email || !mobile || !password) {
-        res.status(400);
-        throw new Error('Please provide all required fields');
+    if (!name || !email || !password) {
+        return res.status(400).json({ message: 'Please provide all required fields' });
     }
 
+    // Optional: Validate email format and password strength here
     const userExists = await User.findOne({ email });
-    const mobileExists = await User.findOne({ mobile });
     if (userExists) {
-        res.status(400);
-        throw new Error('User already exists');
+        return res.status(400).json({ message: 'User already exists with this email' });
     }
-    if (mobileExists) {
-        res.status(400);
-        throw new Error('Mobile number already in use');
-    }
+
+    // Uncomment this if you have a mobile field and validation
+    // const mobileExists = await User.findOne({ mobile });
+    // if (mobileExists) {
+    //     return res.status(400).json({ message: 'Mobile number already in use' });
+    // }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Generate random verification code
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    const user = await User.create({
-        name,
-        email,
-        mobile,
-        password,
-        verificationCode,
-    });
-
-    if (user) {
-        // Send the verification SMS with `verificationCode`
-        await sendSMS({
-            to: user.mobile,
-            text: `Your verification code is ${verificationCode}.`,
+    try {
+        const user = await User.create({
+            name,
+            email,
+            password: hashedPassword, // Store hashed password
+            verificationCode,
         });
 
-        res.status(201).json({
+        // Send the verification email with the `verificationCode`
+        await sendVerificationEmail(user.email, verificationCode); // Send email
+
+        return res.status(201).json({
             _id: user._id,
             name: user.name,
             email: user.email,
-            mobile: user.mobile,
             isVerified: user.isVerified,
             token: generateToken(user._id),
         });
-    } else {
-        res.status(400);
-        throw new Error('Invalid user data');
+    } catch (error) {
+        return res.status(500).json({ message: 'Error registering user', error: error.message });
+    }
+});
+
+// @desc Verify Email Code
+// @route POST /api/users/verify-email
+// @access Public
+const verifyEmail = asyncHandler(async (req, res) => {
+    const { email, verificationCode } = req.body;
+
+    // Validate input
+    if (!email || !verificationCode) {
+        return res.status(400).json({ message: 'Please provide email and verification code' });
+    }
+
+    try {
+        // Find the user by email
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({ message: 'User not found' });
+        }
+
+        // Check if verification code matches
+        if (user.verificationCode !== verificationCode) {
+            return res.status(400).json({ message: 'Invalid verification code' });
+        }
+
+        // If verified, update user
+        user.isVerified = true;
+        user.verificationCode = null; // Clear the verification code
+        await user.save();
+
+        return res.status(200).json({ message: 'Email verified successfully!' });
+    } catch (error) {
+        return res.status(500).json({ message: 'Error verifying email', error: error.message });
     }
 });
 
@@ -63,40 +94,47 @@ const registerUser = asyncHandler(async (req, res) => {
 // @desc Verify user's mobile
 // @route POST /api/users/verify-mobile
 // @access Public
-const verifyMobile = asyncHandler(async (req, res) => {
-    const { mobile, code } = req.body;
+// const verifyMobile = asyncHandler(async (req, res) => {
+//     const { mobile, code } = req.body;
 
-    // Validate input
-    if (!mobile || !code) {
-        res.status(400);
-        throw new Error('Please provide mobile and verification code');
-    }
+//     // Validate input
+//     if (!mobile || !code) {
+//         return res.status(400).json({ message: 'Please provide mobile and verification code' });
+//     }
 
-    // Ensure the code is a six-digit number
-    if (!/^\d{6}$/.test(code)) {
-        res.status(400);
-        throw new Error('Verification code must be a 6-digit number');
-    }
+//     // Ensure the mobile number format is valid (example regex for Pakistani numbers)
+//     const mobileRegex = /^\+92\d{10}$/; // Adjust this based on your specific use case
+//     if (!mobileRegex.test(mobile)) {
+//         return res.status(400).json({ message: 'Invalid mobile number format' });
+//     }
 
-    const user = await User.findOne({ mobile });
+//     // Ensure the code is a six-digit number
+//     if (!/^\d{6}$/.test(code)) {
+//         return res.status(400).json({ message: 'Verification code must be a 6-digit number' });
+//     }
 
-    if (!user) {
-        res.status(404);
-        throw new Error('User not found');
-    }
+//     try {
+//         const user = await User.findOne({ mobile });
 
-    // Compare the provided code with the user's stored verification code
-    if (user.verificationCode === code) {
-        user.isVerified = true;
-        user.verificationCode = null; // Clear the code once verified
-        await user.save();
+//         if (!user) {
+//             return res.status(404).json({ message: 'User not found' });
+//         }
 
-        res.json({ message: 'Mobile verified successfully' });
-    } else {
-        res.status(400);
-        throw new Error('Invalid verification code');
-    }
-});
+//         // Compare the provided code with the user's stored verification code
+//         if (user.verificationCode === code) {
+//             user.isVerified = true;
+//             user.verificationCode = null; // Clear the code once verified
+//             await user.save();
+
+//             return res.status(200).json({ message: 'Mobile verified successfully' });
+//         } else {
+//             return res.status(400).json({ message: 'Invalid verification code' });
+//         }
+//     } catch (error) {
+//         console.error('Error during mobile verification:', error);
+//         return res.status(500).json({ message: 'An unexpected error occurred' });
+//     }
+// });
 
 // @desc Auth user & get token in cookie
 // @route POST /api/users/login
@@ -217,9 +255,9 @@ const guestLogin = asyncHandler(async (req, res) => {
 
 export {
     registerUser,
-    verifyMobile,
     loginUser,
     getProfile,
+    verifyEmail,
     addFavoriteRecipe,
     guestLogin,
 };

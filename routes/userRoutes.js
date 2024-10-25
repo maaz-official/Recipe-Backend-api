@@ -1,11 +1,11 @@
 import express from 'express';
 import {
     registerUser,
-    verifyMobile,
     loginUser,
     addFavoriteRecipe,
     getProfile,
     guestLogin,
+    verifyEmail,
 } from '../controllers/userController.js';
 import { protect } from '../middleware/auth.js'; // Import the protect middleware
 
@@ -15,7 +15,10 @@ const router = express.Router();
 router.post('/register', registerUser); // No protection needed for registration
 
 // Email verification route
-router.post('/verify-mobile', verifyMobile); // No protection needed for verification
+// router.post('/verify-mobile', verifyMobile); // No protection needed for verification
+
+// Email verification route
+router.post('/verify-email', verifyEmail); // No protection needed for verification
 
 // User login route
 router.post('/login', loginUser); // No protection needed for login

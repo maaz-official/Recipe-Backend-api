@@ -1,35 +1,30 @@
-import twilio from 'twilio';
+// import { isValidNumber, parsePhoneNumber } from 'libphonenumber-js'; // Import necessary functions
+// import twilio from 'twilio';
 
-const sendSMS = async ({ to, text }) => {
-    // Check for a valid Twilio phone number
-    const from = process.env.TWILIO_PHONE_NUMBER || '+923417012094'; // Replace with a test number if needed
+// // Replace these with your actual Twilio credentials
 
-    console.log(`Sending SMS from: ${from} to: ${to}`);
-    
-    // Temporarily simulate SMS sending
-    if (!from || from === '+923417012094') {
-        console.log(`Simulating SMS sending: "${text}" to ${to}`);
-        return; // Exit without sending
-    }
+// const twilioClient = twilio(accountSid, authToken);
 
-    const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+// const sendSMS = async ({ to, text }) => {
+//     try {
+//         // Parse and validate the phone number
+//         const phoneNumber = parsePhoneNumber(to, 'PK'); // 'PK' for Pakistan
 
-    try {
-        if (to === from) {
-            throw new Error('The "to" number cannot be the same as the "from" number.');
-        }
+//         if (!isValidNumber(phoneNumber.number)) {
+//             throw new Error('Invalid phone number format');
+//         }
 
-        const message = await client.messages.create({
-            body: text,
-            from,
-            to,
-        });
-        console.log('SMS sent successfully:', message.sid);
-    } catch (error) {
-        console.error('Error sending SMS:', error);
-        console.error('Error details:', error.response ? error.response.body : error.message);
-        throw new Error('SMS could not be sent');
-    }
-};
+//         // Send the SMS
+//         const message = await twilioClient.messages.create({
+//             body: text,
+//             to: phoneNumber.number, // Send to the validated number
+//         });
 
-export default sendSMS;
+//         console.log(`SMS sent successfully to: ${phoneNumber.number}, Message SID: ${message.sid}`);
+//     } catch (error) {
+//         console.error('Error sending SMS:', error.message);
+//         throw error; // Propagate the error
+//     }
+// };
+
+// export default sendSMS;
