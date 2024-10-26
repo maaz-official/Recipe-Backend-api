@@ -15,17 +15,10 @@ const registerUser = asyncHandler(async (req, res) => {
         return res.status(400).json({ message: 'Please provide all required fields' });
     }
 
-    // Optional: Validate email format and password strength here
     const userExists = await User.findOne({ email });
     if (userExists) {
         return res.status(400).json({ message: 'User already exists with this email' });
     }
-
-    // Uncomment this if you have a mobile field and validation
-    // const mobileExists = await User.findOne({ mobile });
-    // if (mobileExists) {
-    //     return res.status(400).json({ message: 'Mobile number already in use' });
-    // }
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -90,52 +83,6 @@ const verifyEmail = asyncHandler(async (req, res) => {
     }
 });
 
-
-// @desc Verify user's mobile
-// @route POST /api/users/verify-mobile
-// @access Public
-// const verifyMobile = asyncHandler(async (req, res) => {
-//     const { mobile, code } = req.body;
-
-//     // Validate input
-//     if (!mobile || !code) {
-//         return res.status(400).json({ message: 'Please provide mobile and verification code' });
-//     }
-
-//     // Ensure the mobile number format is valid (example regex for Pakistani numbers)
-//     const mobileRegex = /^\+92\d{10}$/; // Adjust this based on your specific use case
-//     if (!mobileRegex.test(mobile)) {
-//         return res.status(400).json({ message: 'Invalid mobile number format' });
-//     }
-
-//     // Ensure the code is a six-digit number
-//     if (!/^\d{6}$/.test(code)) {
-//         return res.status(400).json({ message: 'Verification code must be a 6-digit number' });
-//     }
-
-//     try {
-//         const user = await User.findOne({ mobile });
-
-//         if (!user) {
-//             return res.status(404).json({ message: 'User not found' });
-//         }
-
-//         // Compare the provided code with the user's stored verification code
-//         if (user.verificationCode === code) {
-//             user.isVerified = true;
-//             user.verificationCode = null; // Clear the code once verified
-//             await user.save();
-
-//             return res.status(200).json({ message: 'Mobile verified successfully' });
-//         } else {
-//             return res.status(400).json({ message: 'Invalid verification code' });
-//         }
-//     } catch (error) {
-//         console.error('Error during mobile verification:', error);
-//         return res.status(500).json({ message: 'An unexpected error occurred' });
-//     }
-// });
-
 // @desc Auth user & get token in cookie
 // @route POST /api/users/login
 // @access Public
@@ -156,10 +103,10 @@ const loginUser = asyncHandler(async (req, res) => {
 
         // Set the token in an HTTP-only cookie
         res.cookie('jwt', token, {
-            httpOnly: true, // Prevents client-side JavaScript from accessing the cookie
-            secure: process.env.NODE_ENV === 'production', // Ensure secure flag is true in production
-            sameSite: 'Strict', // Helps with CSRF protection
-            maxAge: 30 * 24 * 60 * 60 * 1000, // Cookie expiration (30 days in milliseconds)
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'Strict',
+            maxAge: 30 * 24 * 60 * 60 * 1000,
         });
 
         // Respond with user info (without token in the body)
