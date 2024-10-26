@@ -5,8 +5,6 @@ import generateToken from '../utils/generateToken.js';
 import { sendVerificationEmail } from '../utils/mailer.js'; // Import the mailer function
 
 // @desc Register a new user
-// @route POST /api/users/register
-// @access Public
 const registerUser = asyncHandler(async (req, res) => {
     const { name, email, password } = req.body;
 
@@ -22,20 +20,17 @@ const registerUser = asyncHandler(async (req, res) => {
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Generate random verification code
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
     try {
         const user = await User.create({
             name,
             email,
-            password: hashedPassword, // Store hashed password
+            password: hashedPassword,
             verificationCode,
         });
 
-        // Send the verification email with the `verificationCode`
-        await sendVerificationEmail(user.email, verificationCode); // Send email
+        await sendVerificationEmail(user.email, verificationCode);
 
         return res.status(201).json({
             _id: user._id,
@@ -45,13 +40,12 @@ const registerUser = asyncHandler(async (req, res) => {
             token: generateToken(user._id),
         });
     } catch (error) {
+        console.error("Registration error:", error); // Log the error for debugging
         return res.status(500).json({ message: 'Error registering user', error: error.message });
     }
 });
 
 // @desc Verify Email Code
-// @route POST /api/users/verify-email
-// @access Public
 const verifyEmail = asyncHandler(async (req, res) => {
     const { email, verificationCode } = req.body;
 
@@ -61,27 +55,26 @@ const verifyEmail = asyncHandler(async (req, res) => {
     }
 
     try {
-        // Find the user by email
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(400).json({ message: 'User not found' });
         }
 
-        // Check if verification code matches
         if (user.verificationCode !== verificationCode) {
             return res.status(400).json({ message: 'Invalid verification code' });
         }
 
-        // If verified, update user
         user.isVerified = true;
         user.verificationCode = null; // Clear the verification code
         await user.save();
 
         return res.status(200).json({ message: 'Email verified successfully!' });
     } catch (error) {
+        console.error("Verification error:", error); // Log the error for debugging
         return res.status(500).json({ message: 'Error verifying email', error: error.message });
     }
 });
+
 
 // @desc Auth user & get token in cookie
 // @route POST /api/users/login

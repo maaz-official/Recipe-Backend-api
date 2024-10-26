@@ -51,7 +51,6 @@ export const createRecipe = async (req, res) => {
   }
 };
 
-
 // Delete a recipe by ID
 export const deleteRecipe = async (req, res) => {
   try {
@@ -65,7 +64,6 @@ export const deleteRecipe = async (req, res) => {
     res.status(500).json({ message: 'Error deleting the recipe' });
   }
 };
-
 
 // Update a recipe by ID
 export const updateRecipe = async (req, res) => {
@@ -97,5 +95,51 @@ export const updateRecipe = async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ message: 'Error updating the recipe' });
+  }
+};
+
+// Favorite a recipe
+export const favoriteRecipe = async (req, res) => {
+  const { userId } = req.body; // Assuming user ID is sent in the request body
+
+  try {
+    const recipe = await Recipe.findById(req.params.id);
+    if (!recipe) {
+      return res.status(404).json({ message: "Recipe not found" });
+    }
+
+    // Add userId to favorites if not already present
+    if (!recipe.favorites.includes(userId)) {
+      recipe.favorites.push(userId);
+      await recipe.save();
+      return res.json({ message: "Recipe favorited", favorites: recipe.favorites });
+    } else {
+      return res.status(400).json({ message: "Recipe already favorited" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Error favoriting the recipe' });
+  }
+};
+
+// Unfavorite a recipe
+export const unfavoriteRecipe = async (req, res) => {
+  const { userId } = req.body; // Assuming user ID is sent in the request body
+
+  try {
+    const recipe = await Recipe.findById(req.params.id);
+    if (!recipe) {
+      return res.status(404).json({ message: "Recipe not found" });
+    }
+
+    // Remove userId from favorites if present
+    if (recipe.favorites.includes(userId)) {
+      recipe.favorites = recipe.favorites.filter(id => id !== userId);
+      await recipe.save();
+      return res.json({ message: "Recipe unfavorited", favorites: recipe.favorites });
+    } else {
+      return res.status(400).json({ message: "Recipe not favorited" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Error unfavoriting the recipe' });
   }
 };

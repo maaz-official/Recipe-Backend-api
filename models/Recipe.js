@@ -1,4 +1,3 @@
-// src/models/recipeModel.js
 import mongoose from 'mongoose';
 
 const recipeSchema = new mongoose.Schema({
@@ -19,6 +18,7 @@ const recipeSchema = new mongoose.Schema({
   servings: Number,
   ingredients: [String], // Array of ingredients
   instructions: [String], // Array of instructions
+  favorites: { type: [String], default: [] }, // Array to hold user IDs of favorited users
 }, { timestamps: true }); // Automatically add createdAt and updatedAt fields
 
 const Recipe = mongoose.model('Recipe', recipeSchema);
