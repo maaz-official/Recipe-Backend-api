@@ -100,17 +100,22 @@ export const updateRecipe = async (req, res) => {
 
 // Favorite a recipe
 export const favoriteRecipe = async (req, res) => {
-  const { userId } = req.body; // Assuming user ID is sent in the request body
+  const recipeId = req.params.id; // Get recipe ID from request parameters
 
   try {
-    const recipe = await Recipe.findById(req.params.id);
+    const recipe = await Recipe.findById(recipeId);
     if (!recipe) {
       return res.status(404).json({ message: "Recipe not found" });
     }
 
-    // Add userId to favorites if not already present
-    if (!recipe.favorites.includes(userId)) {
-      recipe.favorites.push(userId);
+    // Check if recipe is already favorited
+    if (!recipe.favorites) {
+      recipe.favorites = []; // Initialize favorites array if it doesn't exist
+    }
+
+    // Add the recipe ID to favorites if not already present
+    if (!recipe.favorites.includes(recipeId)) {
+      recipe.favorites.push(recipeId);
       await recipe.save();
       return res.json({ message: "Recipe favorited", favorites: recipe.favorites });
     } else {
@@ -123,17 +128,22 @@ export const favoriteRecipe = async (req, res) => {
 
 // Unfavorite a recipe
 export const unfavoriteRecipe = async (req, res) => {
-  const { userId } = req.body; // Assuming user ID is sent in the request body
+  const recipeId = req.params.id; // Get recipe ID from request parameters
 
   try {
-    const recipe = await Recipe.findById(req.params.id);
+    const recipe = await Recipe.findById(recipeId);
     if (!recipe) {
       return res.status(404).json({ message: "Recipe not found" });
     }
 
-    // Remove userId from favorites if present
-    if (recipe.favorites.includes(userId)) {
-      recipe.favorites = recipe.favorites.filter(id => id !== userId);
+    // Check if favorites array exists
+    if (!recipe.favorites) {
+      return res.status(400).json({ message: "Recipe is not favorited" });
+    }
+
+    // Remove recipe ID from favorites if present
+    if (recipe.favorites.includes(recipeId)) {
+      recipe.favorites = recipe.favorites.filter(id => id !== recipeId);
       await recipe.save();
       return res.json({ message: "Recipe unfavorited", favorites: recipe.favorites });
     } else {
