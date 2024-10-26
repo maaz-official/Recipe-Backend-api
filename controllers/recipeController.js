@@ -153,3 +153,14 @@ export const unfavoriteRecipe = async (req, res) => {
     res.status(500).json({ message: 'Error unfavoriting the recipe' });
   }
 };
+
+
+// Get all favorited recipes
+export const getFavorites = async (req, res) => {
+  try {
+    const favoritedRecipes = await Recipe.find({ favorites: { $exists: true, $ne: [] } }); // Find recipes with non-empty favorites arrays
+    res.json(favoritedRecipes);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching favorited recipes' });
+  }
+};
