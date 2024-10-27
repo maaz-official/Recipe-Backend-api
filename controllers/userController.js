@@ -82,18 +82,26 @@ const loginUser = asyncHandler(async (req, res, next) => {
 
     const user = await User.findOne({ email });
     if (user && (await user.matchPassword(password))) {
-        const token = generateToken(user._id);
+        const token = generateToken(user._id); // Generate token here
         res.cookie('jwt', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'Strict',
             maxAge: 30 * 24 * 60 * 60 * 1000,
         });
-        res.json({ _id: user._id, name: user.name, email: user.email, isVerified: user.isVerified });
+        // Include token in the JSON response
+        res.json({ 
+            _id: user._id, 
+            name: user.name, 
+            email: user.email, 
+            isVerified: user.isVerified,
+            token, // Include token here
+        });
     } else {
         return next(new AppError('Invalid email or password', 401));
     }
 });
+
 
 // Get Profile
 const getProfile = asyncHandler(async (req, res, next) => {
