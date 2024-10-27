@@ -27,7 +27,7 @@ router.post('/guest', guestLogin);
 
 // Profile
 router.get('/profile', getProfile);
-router.route('/:id').get(protect, getUser).put(protect, updateUser);
+router.route('/:id').get(getUser).put(updateUser);
 
 // Favorite recipes
 router.post('/favorites/add', addFavoriteRecipe); // Route for adding favorites
