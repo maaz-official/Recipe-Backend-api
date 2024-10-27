@@ -14,12 +14,16 @@ const registerStep = asyncHandler(async (req, res, next) => {
     const userExists = await User.findOne({ email });
     if (userExists) return next(new AppError('User already exists', 400));
 
-    const verificationCode = crypto.randomBytes(3).toString('hex');
+    // Generate a 6-digit hexadecimal verification code
+    const verificationCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+
     const user = await User.create({ name, email, verificationCode });
 
+    // Send the verification email with the generated code
     await sendVerificationEmail(user.email, verificationCode);
-    res.status(200).json({ message: 'Verification code sent' });
+    res.status(200).json({ message: 'Verification code sent to your email' });
 });
+
 
 // Step 2: Verify Email
 const verifyEmail = asyncHandler(async (req, res, next) => {
