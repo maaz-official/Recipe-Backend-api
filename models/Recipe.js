@@ -18,7 +18,6 @@ const recipeSchema = new mongoose.Schema({
   servings: Number,
   ingredients: [String], // Array of ingredients
   instructions: [String], // Array of instructions
-  favorites: [String], // Store recipe IDs in this array
 }, { timestamps: true }); // Automatically add createdAt and updatedAt fields
 
 const Recipe = mongoose.model('Recipe', recipeSchema);

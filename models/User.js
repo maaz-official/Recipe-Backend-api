@@ -17,10 +17,10 @@ const userSchema = new mongoose.Schema({
   },
   isVerified: {
     type: Boolean,
-    default: false, // Mobile is not verified by default
+    default: false, // User is not verified by default
   },
   verificationCode: {
-    type: String, // A random string for mobile verification
+    type: String, // A random string for verification
   },
   role: {
     type: String,
@@ -29,8 +29,8 @@ const userSchema = new mongoose.Schema({
   },
   addToFav: [{ 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Recipe', // Reference to the Recipe model
-  }], // Array of favorite recipe IDs
+    ref: 'Recipe', 
+  }],
   profilePicture: {
     type: String, // URL to profile picture
   },
