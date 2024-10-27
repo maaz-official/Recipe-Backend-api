@@ -1,16 +1,15 @@
 import asyncHandler from '../utils/asyncHandler.js';
-import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import generateToken from '../utils/generateToken.js';
-import { sendVerificationEmail } from '../utils/mailer.js'; // Import the mailer function
+import { sendVerificationEmail } from '../utils/mailer.js';
 
-// @desc Register a new user
-const registerUser = asyncHandler(async (req, res) => {
-    const { name, email, password } = req.body;
+// Step 1: Register basic info (name and email)
+const registerStep = asyncHandler(async (req, res) => {
+    const { name, email } = req.body;
 
     // Validate input
-    if (!name || !email || !password) {
-        return res.status(400).json({ message: 'Please provide all required fields' });
+    if (!name || !email) {
+        return res.status(400).json({ message: 'Please provide name and email' });
     }
 
     const userExists = await User.findOne({ email });
@@ -18,34 +17,25 @@ const registerUser = asyncHandler(async (req, res) => {
         return res.status(400).json({ message: 'User already exists with this email' });
     }
 
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
     try {
         const user = await User.create({
             name,
             email,
-            password: hashedPassword,
             verificationCode,
         });
 
         await sendVerificationEmail(user.email, verificationCode);
 
-        return res.status(201).json({
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            isVerified: user.isVerified,
-            token: generateToken(user._id),
-        });
+        return res.status(200).json({ message: 'Verification code sent to email' });
     } catch (error) {
-        console.error("Registration error:", error); // Log the error for debugging
+        console.error("Step 1 error:", error);
         return res.status(500).json({ message: 'Error registering user', error: error.message });
     }
 });
 
-// @desc Verify Email Code
+// Step 2: Verify Email Code
 const verifyEmail = asyncHandler(async (req, res) => {
     const { email, verificationCode } = req.body;
 
@@ -70,15 +60,67 @@ const verifyEmail = asyncHandler(async (req, res) => {
 
         return res.status(200).json({ message: 'Email verified successfully!' });
     } catch (error) {
-        console.error("Verification error:", error); // Log the error for debugging
+        console.error("Verification error:", error);
         return res.status(500).json({ message: 'Error verifying email', error: error.message });
     }
 });
 
+// Step 3: Add Additional Info
+const addAdditionalInfo = asyncHandler(async (req, res) => {
+    const { email, mobileNumber, dob, address } = req.body;
+
+    if (!email || !mobileNumber || !dob || !address) {
+        return res.status(400).json({ message: 'Please provide email, mobile number, date of birth, and address' });
+    }
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({ message: 'User not found' });
+        }
+
+        user.mobileNumber = mobileNumber;
+        user.dob = dob;
+        user.address = address;
+        await user.save();
+
+        return res.status(200).json({ message: 'Additional info saved successfully!' });
+    } catch (error) {
+        console.error("Additional info error:", error);
+        return res.status(500).json({ message: 'Error saving additional info', error: error.message });
+    }
+});
+
+// Step 4: Finalize registration (create password)
+const finalizeRegistration = asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({ message: 'Please provide email and password' });
+    }
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({ message: 'User not found' });
+        }
+
+        user.password = password; // Set the password
+        await user.save();
+
+        return res.status(201).json({
+            _id: user._id,
+            email: user.email,
+            message: 'User registered successfully!',
+            token: generateToken(user._id), // Optionally generate a token
+        });
+    } catch (error) {
+        console.error("Final registration error:", error);
+        return res.status(500).json({ message: 'Error finalizing registration', error: error.message });
+    }
+});
 
 // @desc Auth user & get token in cookie
-// @route POST /api/users/login
-// @access Public
 const loginUser = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
@@ -116,8 +158,6 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 // @desc Get user profile
-// @route GET /api/users/profile
-// @access Private
 const getProfile = asyncHandler(async (req, res) => {
     const user = await User.findById(req.user._id);
 
@@ -128,6 +168,9 @@ const getProfile = asyncHandler(async (req, res) => {
             email: user.email,
             isVerified: user.isVerified,
             favorites: user.addToFav,
+            mobileNumber: user.mobileNumber,
+            dob: user.dob,
+            address: user.address,
         });
     } else {
         res.status(404);
@@ -136,8 +179,6 @@ const getProfile = asyncHandler(async (req, res) => {
 });
 
 // @desc Add a recipe to favorites
-// @route POST /api/users/favorites
-// @access Private
 const addFavoriteRecipe = asyncHandler(async (req, res) => {
     const user = await User.findById(req.user._id);
     const { recipeId } = req.body;
@@ -169,8 +210,6 @@ const addFavoriteRecipe = asyncHandler(async (req, res) => {
 });
 
 // @desc Login as a guest
-// @route POST /api/users/guest
-// @access Public
 const guestLogin = asyncHandler(async (req, res) => {
     const guestUser = await User.create({
         name: 'Guest',
@@ -194,10 +233,12 @@ const guestLogin = asyncHandler(async (req, res) => {
 });
 
 export {
-    registerUser,
+    registerStep,
+    verifyEmail,
+    addAdditionalInfo,
+    finalizeRegistration,
     loginUser,
     getProfile,
-    verifyEmail,
     addFavoriteRecipe,
     guestLogin,
 };
