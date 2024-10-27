@@ -99,6 +99,7 @@ export const updateRecipe = async (req, res) => {
 };
 
 // Favorite a recipe
+// Favorite a recipe
 export const favoriteRecipe = async (req, res) => {
   const recipeId = req.params.id; // Get recipe ID from request parameters
 
@@ -108,9 +109,9 @@ export const favoriteRecipe = async (req, res) => {
       return res.status(404).json({ message: "Recipe not found" });
     }
 
-    // Check if recipe is already favorited
+    // Initialize favorites array if it doesn't exist
     if (!recipe.favorites) {
-      recipe.favorites = []; // Initialize favorites array if it doesn't exist
+      recipe.favorites = [];
     }
 
     // Add the recipe ID to favorites if not already present
@@ -126,6 +127,8 @@ export const favoriteRecipe = async (req, res) => {
   }
 };
 
+
+// Unfavorite a recipe
 // Unfavorite a recipe
 export const unfavoriteRecipe = async (req, res) => {
   const recipeId = req.params.id; // Get recipe ID from request parameters
@@ -137,7 +140,7 @@ export const unfavoriteRecipe = async (req, res) => {
     }
 
     // Check if favorites array exists
-    if (!recipe.favorites) {
+    if (!recipe.favorites || recipe.favorites.length === 0) {
       return res.status(400).json({ message: "Recipe is not favorited" });
     }
 
