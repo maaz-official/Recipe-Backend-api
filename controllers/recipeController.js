@@ -25,9 +25,9 @@ export const getRecipeById = async (req, res) => {
 };
 
 // Create a new recipe
+// Create a new recipe
 export const createRecipe = async (req, res) => {
   const { title, description, image, recipesImages, category, tags, preparationTime, cookingTime, servings, ingredients, instructions } = req.body;
-
   // Create a new recipe object using the Mongoose model
   const newRecipe = new Recipe({
     title,
@@ -42,7 +42,6 @@ export const createRecipe = async (req, res) => {
     ingredients,
     instructions,
   });
-
   try {
     const savedRecipe = await newRecipe.save(); // Save the recipe to the database
     res.status(201).json(savedRecipe); // Respond with the newly created recipe
