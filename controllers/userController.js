@@ -174,7 +174,52 @@ const removeFavoriteRecipe = asyncHandler(async (req, res, next) => {
     res.status(200).json({ message: 'Recipe removed from favorites' });
 });
 
+// Get User by ID
+const getUser = asyncHandler(async (req, res, next) => {
+    const { id } = req.params;
+
+    const user = await User.findById(id).select('-password'); // Exclude password from response
+    if (!user) return next(new AppError('User not found', 404));
+
+    res.status(200).json(user);
+});
+
+// Update User
+const updateUser = asyncHandler(async (req, res, next) => {
+    const { id } = req.params;
+    const { name, email, password, mobileNumber, dob, address } = req.body;
+
+    const user = await User.findById(id);
+    if (!user) return next(new AppError('User not found', 404));
+
+    // Update user fields if provided in request body
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (password) user.password = password; // Assume pre-save hook handles hashing
+    if (mobileNumber) user.mobileNumber = mobileNumber;
+    if (dob) user.dob = dob;
+    if (address) user.address = address;
+
+    await user.save();
+
+    res.status(200).json({
+        message: 'User updated successfully',
+        user: {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            mobileNumber: user.mobileNumber,
+            dob: user.dob,
+            address: user.address,
+            updatedAt: user.updatedAt,
+        },
+    });
+});
+
+
 export {
+    getUser,
+    updateUser,
     registerStep,
     verifyEmail,
     addAdditionalInfo,

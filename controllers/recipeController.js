@@ -98,59 +98,42 @@ export const updateRecipe = async (req, res) => {
 };
 
 // Favorite a recipe
-// Favorite a recipe
 export const favoriteRecipe = async (req, res) => {
-  const recipeId = req.params.id; // Get recipe ID from request parameters
+  const userId = req.user._id; // Assumes user ID is added to req.user by auth middleware
+  const recipeId = req.params.id;
 
   try {
     const recipe = await Recipe.findById(recipeId);
-    if (!recipe) {
-      return res.status(404).json({ message: "Recipe not found" });
-    }
+    if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
 
-    // Initialize favorites array if it doesn't exist
-    if (!recipe.favorites) {
-      recipe.favorites = [];
-    }
-
-    // Add the recipe ID to favorites if not already present
-    if (!recipe.favorites.includes(recipeId)) {
-      recipe.favorites.push(recipeId);
+    // Add user ID to favorites if not already present
+    if (!recipe.favorites.includes(userId)) {
+      recipe.favorites.push(userId);
       await recipe.save();
-      return res.json({ message: "Recipe favorited", favorites: recipe.favorites });
-    } else {
-      return res.status(400).json({ message: "Recipe already favorited" });
+      return res.json({ message: 'Recipe favorited', favorites: recipe.favorites });
     }
+    return res.status(400).json({ message: 'Recipe already favorited' });
   } catch (error) {
     res.status(500).json({ message: 'Error favoriting the recipe' });
   }
 };
 
-
-// Unfavorite a recipe
 // Unfavorite a recipe
 export const unfavoriteRecipe = async (req, res) => {
-  const recipeId = req.params.id; // Get recipe ID from request parameters
+  const userId = req.user._id;
+  const recipeId = req.params.id;
 
   try {
     const recipe = await Recipe.findById(recipeId);
-    if (!recipe) {
-      return res.status(404).json({ message: "Recipe not found" });
-    }
+    if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
 
-    // Check if favorites array exists
-    if (!recipe.favorites || recipe.favorites.length === 0) {
-      return res.status(400).json({ message: "Recipe is not favorited" });
-    }
-
-    // Remove recipe ID from favorites if present
-    if (recipe.favorites.includes(recipeId)) {
-      recipe.favorites = recipe.favorites.filter(id => id !== recipeId);
+    // Remove user ID from favorites if present
+    if (recipe.favorites.includes(userId)) {
+      recipe.favorites = recipe.favorites.filter(id => id.toString() !== userId.toString());
       await recipe.save();
-      return res.json({ message: "Recipe unfavorited", favorites: recipe.favorites });
-    } else {
-      return res.status(400).json({ message: "Recipe not favorited" });
+      return res.json({ message: 'Recipe unfavorited', favorites: recipe.favorites });
     }
+    return res.status(400).json({ message: 'Recipe not favorited' });
   } catch (error) {
     res.status(500).json({ message: 'Error unfavoriting the recipe' });
   }

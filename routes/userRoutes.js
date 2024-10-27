@@ -9,6 +9,8 @@ import {
     addFavoriteRecipe,
     removeFavoriteRecipe, // Added unfavorite function
     guestLogin,
+    getUser,
+    updateUser
 } from '../controllers/userController.js';
 
 const router = express.Router();
@@ -25,6 +27,7 @@ router.post('/guest', guestLogin);
 
 // Profile
 router.get('/profile', getProfile);
+router.route('/:id').get(protect, getUser).put(protect, updateUser);
 
 // Favorite recipes
 router.post('/favorites/add', addFavoriteRecipe); // Route for adding favorites
