@@ -10,6 +10,7 @@ import {
     removeFavoriteRecipe, // Added unfavorite function
     guestLogin,
     getUser,
+    getFavorites,
     updateUser
 } from '../controllers/userController.js';
 
@@ -30,6 +31,7 @@ router.get('/profile', getProfile);
 router.route('/:id').get(getUser).put(updateUser);
 
 // Favorite recipes
+router.get('/favorites', getFavorites); // Add this route for fetching favorites
 router.post('/favorites/add', addFavoriteRecipe); // Route for adding favorites
 router.post('/favorites/remove', removeFavoriteRecipe); // Route for removing favorites
 

@@ -79,26 +79,25 @@ userSchema.methods.generatePasswordResetToken = function() {
     return resetToken;
 };
 
-// Add favorite recipe
-userSchema.methods.addFavoriteRecipe = async function(recipeId) {
+userSchema.methods.addFavoriteLocally = function (recipeId) {
     if (!this.addToFav.includes(recipeId)) {
         this.addToFav.push(recipeId);
-        await this.save();
         return true;
     }
     return false;
 };
 
-// Remove favorite recipe
-userSchema.methods.removeFavoriteRecipe = async function(recipeId) {
+userSchema.methods.removeFavoriteLocally = function (recipeId) {
     const index = this.addToFav.indexOf(recipeId);
     if (index > -1) {
         this.addToFav.splice(index, 1);
-        await this.save();
         return true;
     }
     return false;
 };
+
+// Call `user.save()` manually when you’re ready to persist all changes.
+
 
 const User = mongoose.model('User', userSchema);
 

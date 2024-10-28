@@ -225,6 +225,18 @@ const updateUser = asyncHandler(async (req, res, next) => {
 });
 
 
+// Get all favorite recipes
+const getFavorites = asyncHandler(async (req, res, next) => {
+    const user = await User.findById(req.user._id).populate('addToFav'); // Populate favorite recipes
+
+    if (!user) return next(new AppError('User not found', 404));
+
+    res.status(200).json({
+        favorites: user.addToFav
+    });
+});
+
+
 export {
     getUser,
     updateUser,
@@ -237,4 +249,5 @@ export {
     guestLogin,
     addFavoriteRecipe,
     removeFavoriteRecipe,
+    getFavorites,
 };
