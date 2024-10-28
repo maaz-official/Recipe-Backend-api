@@ -156,10 +156,13 @@ const addFavoriteRecipe = asyncHandler(async (req, res, next) => {
     const recipe = await Recipe.findById(recipeId);
     if (!recipe) return next(new AppError('Recipe not found', 404));
 
-    const added = await user.addFavoriteRecipe(recipeId);
-    if (!added) return next(new AppError('Recipe already in favorites', 400));
-
-    res.status(200).json({ message: 'Recipe added to favorites' });
+    if (!user.favorites.includes(recipeId)) {
+        user.favorites.push(recipeId);
+        await user.save();
+        res.status(200).json({ message: 'Recipe added to favorites', favorites: user.favorites });
+    } else {
+        return next(new AppError('Recipe already in favorites', 400));
+    }
 });
 
 // Remove favorite recipe
@@ -168,11 +171,16 @@ const removeFavoriteRecipe = asyncHandler(async (req, res, next) => {
     const { recipeId } = req.body;
     if (!recipeId) return next(new AppError('Recipe ID required', 400));
 
-    const removed = await user.removeFavoriteRecipe(recipeId);
-    if (!removed) return next(new AppError('Recipe not found in favorites', 404));
-
-    res.status(200).json({ message: 'Recipe removed from favorites' });
+    const index = user.favorites.indexOf(recipeId);
+    if (index > -1) {
+        user.favorites.splice(index, 1);
+        await user.save();
+        res.status(200).json({ message: 'Recipe removed from favorites', favorites: user.favorites });
+    } else {
+        return next(new AppError('Recipe not found in favorites', 404));
+    }
 });
+
 
 // Get User by ID
 const getUser = asyncHandler(async (req, res, next) => {
