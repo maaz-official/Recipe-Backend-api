@@ -1,3 +1,4 @@
+// models/User.js
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
@@ -27,12 +28,13 @@ const userSchema = new mongoose.Schema({
         enum: ['user', 'admin', 'guest'],
         default: 'user',
     },
-    mobileNumber: String,
-    dob: Date,
-    address: String,
-    addToFav: [{ 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'Recipe', 
+    additionalInfo: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'AdditionalInfo', // Reference to the AdditionalInfo model
+    }],
+    addToFav: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Recipe',
     }],
     profilePicture: String,
     isGuest: {
@@ -41,15 +43,15 @@ const userSchema = new mongoose.Schema({
     },
     resetPasswordToken: String,
     resetPasswordExpires: Date,
-}, { 
+}, {
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
 });
 
-// Virtual for full name
-userSchema.virtual('fullName').get(function() {
-    return `${this.name.first} ${this.name.last}`;
+// Virtual for full name (if necessary)
+userSchema.virtual('fullName').get(function () {
+    return this.name; // Assuming 'name' is already the full name
 });
 
 // Hash password before saving
@@ -66,19 +68,19 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 };
 
 // Generate verification code
-userSchema.methods.generateVerificationCode = function() {
+userSchema.methods.generateVerificationCode = function () {
     this.verificationCode = crypto.randomBytes(3).toString('hex');
     return this.verificationCode;
 };
 
 // Generate password reset token
-userSchema.methods.generatePasswordResetToken = function() {
+userSchema.methods.generatePasswordResetToken = function () {
     const resetToken = crypto.randomBytes(20).toString('hex');
     this.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
     this.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // Token expires in 10 minutes
-    return resetToken;
 };
 
+// Methods for managing favorites
 userSchema.methods.addFavoriteLocally = function (recipeId) {
     if (!this.addToFav.includes(recipeId)) {
         this.addToFav.push(recipeId);
@@ -97,8 +99,6 @@ userSchema.methods.removeFavoriteLocally = function (recipeId) {
 };
 
 // Call `user.save()` manually when you’re ready to persist all changes.
-
-
 const User = mongoose.model('User', userSchema);
 
 export default User;

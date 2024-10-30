@@ -1,6 +1,7 @@
 import asyncHandler from '../utils/asyncHandler.js';
 import User from '../models/User.js';
 import Recipe from '../models/Recipe.js';
+import AdditionalInfo from '../models/Info.js'; // Import the AdditionalInfo model
 import generateToken from '../utils/generateToken.js';
 import { sendVerificationEmail } from '../utils/mailer.js';
 import AppError from '../utils/AppError.js';
@@ -14,16 +15,15 @@ const registerStep = asyncHandler(async (req, res, next) => {
     const userExists = await User.findOne({ email });
     if (userExists) return next(new AppError('User already exists', 400));
 
-    // Generate a 6-digit hexadecimal verification code
+    // Generate a verification code
     const verificationCode = crypto.randomBytes(3).toString('hex').toUpperCase();
 
     const user = await User.create({ name, email, verificationCode });
 
-    // Send the verification email with the generated code
+    // Send the verification email
     await sendVerificationEmail(user.email, verificationCode);
     res.status(200).json({ message: 'Verification code sent to your email' });
 });
-
 
 // Step 2: Verify Email
 const verifyEmail = asyncHandler(async (req, res, next) => {
@@ -48,12 +48,18 @@ const addAdditionalInfo = asyncHandler(async (req, res, next) => {
     const user = await User.findOne({ email });
     if (!user) return next(new AppError('User not found', 404));
 
-    user.mobileNumber = mobileNumber;
-    user.dob = dob;
-    user.address = address;
+    // Create a new AdditionalInfo document
+    const additionalInfo = await AdditionalInfo.create({
+        mobileNumber,
+        dob,
+        address
+    });
+
+    // Link the AdditionalInfo document to the User
+    user.additionalInfo.push(additionalInfo._id);
     await user.save();
 
-    res.status(200).json({ message: 'Additional info saved' });
+    res.status(200).json({ message: 'Additional info saved', additionalInfo });
 });
 
 // Step 4: Finalize Registration
@@ -102,10 +108,9 @@ const loginUser = asyncHandler(async (req, res, next) => {
     }
 });
 
-
 // Get Profile
 const getProfile = asyncHandler(async (req, res, next) => {
-    const user = await User.findById(req.user._id).select('-password'); // Exclude password from response
+    const user = await User.findById(req.user._id).select('-password').populate('additionalInfo'); // Populate additionalInfo
 
     if (!user) return next(new AppError('User not found', 404));
 
@@ -115,9 +120,7 @@ const getProfile = asyncHandler(async (req, res, next) => {
         email: user.email,
         isVerified: user.isVerified,
         favorites: user.addToFav,
-        mobileNumber: user.mobileNumber,
-        dob: user.dob,
-        address: user.address,
+        additionalInfo: user.additionalInfo, // Include additional info in the response
         profilePicture: user.profilePicture,
         role: user.role,
         createdAt: user.createdAt,
@@ -156,10 +159,10 @@ const addFavoriteRecipe = asyncHandler(async (req, res, next) => {
     const recipe = await Recipe.findById(recipeId);
     if (!recipe) return next(new AppError('Recipe not found', 404));
 
-    if (!user.favorites.includes(recipeId)) {
-        user.favorites.push(recipeId);
+    if (!user.addToFav.includes(recipeId)) {
+        user.addToFav.push(recipeId); // Corrected from favorites to addToFav
         await user.save();
-        res.status(200).json({ message: 'Recipe added to favorites', favorites: user.favorites });
+        res.status(200).json({ message: 'Recipe added to favorites', favorites: user.addToFav });
     } else {
         return next(new AppError('Recipe already in favorites', 400));
     }
@@ -171,22 +174,21 @@ const removeFavoriteRecipe = asyncHandler(async (req, res, next) => {
     const { recipeId } = req.body;
     if (!recipeId) return next(new AppError('Recipe ID required', 400));
 
-    const index = user.favorites.indexOf(recipeId);
+    const index = user.addToFav.indexOf(recipeId); // Corrected from favorites to addToFav
     if (index > -1) {
-        user.favorites.splice(index, 1);
+        user.addToFav.splice(index, 1);
         await user.save();
-        res.status(200).json({ message: 'Recipe removed from favorites', favorites: user.favorites });
+        res.status(200).json({ message: 'Recipe removed from favorites', favorites: user.addToFav });
     } else {
         return next(new AppError('Recipe not found in favorites', 404));
     }
 });
 
-
 // Get User by ID
 const getUser = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
 
-    const user = await User.findById(id).select('-password'); // Exclude password from response
+    const user = await User.findById(id).select('-password').populate('additionalInfo'); // Populate additionalInfo
     if (!user) return next(new AppError('User not found', 404));
 
     res.status(200).json(user);
@@ -197,16 +199,24 @@ const updateUser = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
     const { name, email, password, mobileNumber, dob, address } = req.body;
 
-    const user = await User.findById(id);
+    const user = await User.findById(id).populate('additionalInfo'); // Populate additionalInfo
     if (!user) return next(new AppError('User not found', 404));
 
     // Update user fields if provided in request body
     if (name) user.name = name;
     if (email) user.email = email;
     if (password) user.password = password; // Assume pre-save hook handles hashing
-    if (mobileNumber) user.mobileNumber = mobileNumber;
-    if (dob) user.dob = dob;
-    if (address) user.address = address;
+
+    // Update additional info if provided
+    if (user.additionalInfo.length > 0) {
+        const additionalInfo = await AdditionalInfo.findById(user.additionalInfo[0]); // Assume there's only one additional info entry
+        if (additionalInfo) {
+            if (mobileNumber) additionalInfo.mobileNumber = mobileNumber;
+            if (dob) additionalInfo.dob = dob;
+            if (address) additionalInfo.address = address;
+            await additionalInfo.save();
+        }
+    }
 
     await user.save();
 
@@ -216,14 +226,11 @@ const updateUser = asyncHandler(async (req, res, next) => {
             _id: user._id,
             name: user.name,
             email: user.email,
-            mobileNumber: user.mobileNumber,
-            dob: user.dob,
-            address: user.address,
+            additionalInfo: user.additionalInfo, // Include updated additional info
             updatedAt: user.updatedAt,
         },
     });
 });
-
 
 // Get all favorite recipes
 const getFavorites = asyncHandler(async (req, res, next) => {
@@ -235,7 +242,6 @@ const getFavorites = asyncHandler(async (req, res, next) => {
         favorites: user.addToFav
     });
 });
-
 
 export {
     getUser,

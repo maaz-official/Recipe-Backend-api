@@ -32,7 +32,7 @@ router.route('/:id').get(getUser).put(updateUser);
 
 // Favorite recipes
 router.get('/favorites', getFavorites); // Add this route for fetching favorites
-router.post('/favorites/add', addFavoriteRecipe); // Route for adding favorites
-router.post('/favorites/remove', removeFavoriteRecipe); // Route for removing favorites
+router.post('/:id/fav', addFavoriteRecipe); // Route for adding favorites
+router.post('/:id/unfav', removeFavoriteRecipe); // Route for removing favorites
 
 export default router;

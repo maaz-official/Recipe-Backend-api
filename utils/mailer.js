@@ -19,11 +19,19 @@ const transporter = nodemailer.createTransport({
 export const sendVerificationEmail = asyncHandler(async (to, verificationCode) => {
     try {
         const mailOptions = {
-            from: `"Your Service Name" <${process.env.GMAIL_USER}>`,
+            from: `"Code2Day" <${process.env.GMAIL_USER}>`, // Use brand name in the sender field
             to,
-            subject: 'Email Verification Code',
-            text: `Your verification code is: ${verificationCode}. Please use this code to verify your email.`,
-            html: `<p>Your verification code is: <b>${verificationCode}</b></p><p>Please use this code to verify your email.</p>`,
+            subject: 'Email Verification Code from Code2Day',
+            text: `Hello,\n\nYour verification code is: ${verificationCode}.\nPlease use this code to verify your email with Code2Day.\n\nBest regards,\nMuhammad Maaz, Mentor at Code2Day`,
+            html: `
+                <div style="font-family: Arial, sans-serif; line-height: 1.5;">
+                    <h2 style="color: #333;">Welcome to Code2Day!</h2>
+                    <p>Hello,</p>
+                    <p>Your verification code is: <b style="font-size: 24px;">${verificationCode}</b>.</p>
+                    <p>Please use this code to verify your email with Code2Day.</p>
+                    <p>Best regards,<br><strong>Muhammad Maaz</strong><br>Mentor at Code2Day</p>
+                </div>
+            `,
         };
 
         const info = await transporter.sendMail(mailOptions);
