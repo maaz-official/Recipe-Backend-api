@@ -6,13 +6,15 @@ import {
     finalizeRegistration,
     loginUser,
     getProfile,
-    addFavoriteRecipe,
-    removeFavoriteRecipe, // Added unfavorite function
+    unfavoriteRecipe,
+    favoriteRecipe,
     guestLogin,
     getUser,
     getFavorites,
-    updateUser
+    updateUser,
+    getUserById
 } from '../controllers/userController.js';
+import { protect } from '../middleware/auth.js'; // Import protect middleware
 
 const router = express.Router();
 
@@ -26,13 +28,20 @@ router.post('/finalize-registration', finalizeRegistration);
 router.post('/login', loginUser);
 router.post('/guest', guestLogin);
 
-// Profile
-router.get('/profile', getProfile);
-router.route('/:id').get(getUser).put(updateUser);
+// Profile (Protected Route)
+router.get('/profile', protect, getProfile);
 
-// Favorite recipes
-router.get('/favorites', getFavorites); // Add this route for fetching favorites
-router.post('/:id/fav', addFavoriteRecipe); // Route for adding favorites
-router.post('/:id/unfav', removeFavoriteRecipe); // Route for removing favorites
+// Get and update user profile by ID
+router.route('/:id').get(protect, getUser).put(protect, updateUser); 
+
+// Favorite and Unfavorite Recipes (Protected Routes)
+router.post('/favorite/:id', protect, favoriteRecipe);       // Favorite a recipe by recipe ID
+router.delete('/favorite/:id', protect, unfavoriteRecipe);   // Unfavorite a recipe by recipe ID
+
+// Get Favorites (Protected Route)
+router.get('/favorites', protect, getFavorites);             // Get all favorited recipes for the user
+
+// Additional routes
+router.get('/user/:id', getUserById); // Route for fetching user by ID (public)
 
 export default router;

@@ -1,7 +1,7 @@
 import asyncHandler from '../utils/asyncHandler.js';
 import User from '../models/User.js';
 import Recipe from '../models/Recipe.js';
-import AdditionalInfo from '../models/Info.js'; // Import the AdditionalInfo model
+import AdditionalInfo from '../models/AdditionalInfo.js'; // Import the AdditionalInfo model
 import generateToken from '../utils/generateToken.js';
 import { sendVerificationEmail } from '../utils/mailer.js';
 import AppError from '../utils/AppError.js';
@@ -43,24 +43,44 @@ const verifyEmail = asyncHandler(async (req, res, next) => {
 // Step 3: Add Additional Info
 const addAdditionalInfo = asyncHandler(async (req, res, next) => {
     const { email, mobileNumber, dob, address } = req.body;
-    if (!email || !mobileNumber || !dob || !address) return next(new AppError('All fields are required', 400));
+    
+    // Validate all fields are provided
+    if (!email || !mobileNumber || !dob || !address) {
+        return next(new AppError('All fields are required', 400));
+    }
 
+    // Find the user by email
     const user = await User.findOne({ email });
-    if (!user) return next(new AppError('User not found', 404));
+    if (!user) {
+        return next(new AppError('User not found', 404));
+    }
 
     // Create a new AdditionalInfo document
-    const additionalInfo = await AdditionalInfo.create({
+    const additionalInfo = new AdditionalInfo({
         mobileNumber,
         dob,
-        address
+        address,
     });
+
+    // Save the AdditionalInfo document to the database
+    await additionalInfo.save();
 
     // Link the AdditionalInfo document to the User
     user.additionalInfo.push(additionalInfo._id);
     await user.save();
 
-    res.status(200).json({ message: 'Additional info saved', additionalInfo });
+    // Respond with a success message and the additional info created
+    res.status(200).json({
+        message: 'Additional info saved',
+        additionalInfo: {
+            _id: additionalInfo._id,
+            mobileNumber: additionalInfo.mobileNumber,
+            dob: additionalInfo.dob,
+            address: additionalInfo.address,
+        },
+    });
 });
+
 
 // Step 4: Finalize Registration
 const finalizeRegistration = asyncHandler(async (req, res, next) => {
@@ -150,40 +170,6 @@ const guestLogin = asyncHandler(async (req, res, next) => {
     });
 });
 
-// Add favorite recipe
-const addFavoriteRecipe = asyncHandler(async (req, res, next) => {
-    const user = await User.findById(req.user._id);
-    const { recipeId } = req.body;
-    if (!recipeId) return next(new AppError('Recipe ID required', 400));
-
-    const recipe = await Recipe.findById(recipeId);
-    if (!recipe) return next(new AppError('Recipe not found', 404));
-
-    if (!user.addToFav.includes(recipeId)) {
-        user.addToFav.push(recipeId); // Corrected from favorites to addToFav
-        await user.save();
-        res.status(200).json({ message: 'Recipe added to favorites', favorites: user.addToFav });
-    } else {
-        return next(new AppError('Recipe already in favorites', 400));
-    }
-});
-
-// Remove favorite recipe
-const removeFavoriteRecipe = asyncHandler(async (req, res, next) => {
-    const user = await User.findById(req.user._id);
-    const { recipeId } = req.body;
-    if (!recipeId) return next(new AppError('Recipe ID required', 400));
-
-    const index = user.addToFav.indexOf(recipeId); // Corrected from favorites to addToFav
-    if (index > -1) {
-        user.addToFav.splice(index, 1);
-        await user.save();
-        res.status(200).json({ message: 'Recipe removed from favorites', favorites: user.addToFav });
-    } else {
-        return next(new AppError('Recipe not found in favorites', 404));
-    }
-});
-
 // Get User by ID
 const getUser = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
@@ -226,22 +212,109 @@ const updateUser = asyncHandler(async (req, res, next) => {
             _id: user._id,
             name: user.name,
             email: user.email,
-            additionalInfo: user.additionalInfo, // Include updated additional info
+            additionalInfo: user.additionalInfo,
             updatedAt: user.updatedAt,
         },
     });
 });
 
-// Get all favorite recipes
-const getFavorites = asyncHandler(async (req, res, next) => {
-    const user = await User.findById(req.user._id).populate('addToFav'); // Populate favorite recipes
 
-    if (!user) return next(new AppError('User not found', 404));
+
+// Get User by ID
+const getUserById = asyncHandler(async (req, res, next) => {
+    const { id } = req.params;
+
+    // Validate the ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return next(new AppError('Invalid user ID format', 400));
+    }
+
+    // Fetch the user and populate additionalInfo and addToFav
+    const user = await User.findById(id)
+        .select('-password') // Exclude password
+        .populate('additionalInfo') // Populate additionalInfo references
+        .populate('addToFav'); // Optionally populate favorite recipes
+
+    if (!user) {
+        return next(new AppError('User not found', 404));
+    }
 
     res.status(200).json({
-        favorites: user.addToFav
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        isVerified: user.isVerified,
+        additionalInfo: user.additionalInfo,
+        favorites: user.addToFav,
+        profilePicture: user.profilePicture,
+        role: user.role,
+        isGuest: user.isGuest,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
     });
 });
+
+// controllers/userController.js
+
+// Favorite a recipe
+ const favoriteRecipe = async (req, res) => {
+    const userId = req.user._id; // Assuming user ID is added to req.user by auth middleware
+    const recipeId = req.params.id;
+  
+    try {
+      const user = await User.findById(userId);
+      if (!user) return res.status(404).json({ message: 'User not found' });
+  
+      // Add recipe to favorites if not already present
+      if (!user.addToFav.includes(recipeId)) {
+        user.addToFav.push(recipeId);
+        await user.save();
+        return res.json({ message: 'Recipe favorited', favorites: user.addToFav });
+      }
+      return res.status(400).json({ message: 'Recipe already favorited' });
+    } catch (error) {
+      res.status(500).json({ message: 'Error favoriting the recipe' });
+    }
+  };
+  
+  // Unfavorite a recipe
+ const unfavoriteRecipe = async (req, res) => {
+    const userId = req.user._id;
+    const recipeId = req.params.id;
+  
+    try {
+      const user = await User.findById(userId);
+      if (!user) return res.status(404).json({ message: 'User not found' });
+  
+      // Remove recipe from favorites if present
+      if (user.addToFav.includes(recipeId)) {
+        user.addToFav = user.addToFav.filter(id => id.toString() !== recipeId);
+        await user.save();
+        return res.json({ message: 'Recipe unfavorited', favorites: user.addToFav });
+      }
+      return res.status(400).json({ message: 'Recipe not favorited' });
+    } catch (error) {
+      res.status(500).json({ message: 'Error unfavoriting the recipe' });
+    }
+  };
+
+  // controllers/userController.js
+
+// Get all favorited recipes for a user
+const getFavorites = async (req, res) => {
+    const userId = req.user._id;
+  
+    try {
+      const user = await User.findById(userId).populate('addToFav'); // Populate favorite recipes
+      if (!user) return res.status(404).json({ message: 'User not found' });
+  
+      res.json({ favorites: user.addToFav });
+    } catch (error) {
+      res.status(500).json({ message: 'Error fetching favorites' });
+    }
+  };
+  
+  
 
 export {
     getUser,
@@ -253,7 +326,8 @@ export {
     loginUser,
     getProfile,
     guestLogin,
-    addFavoriteRecipe,
-    removeFavoriteRecipe,
+    unfavoriteRecipe,
+    favoriteRecipe,
     getFavorites,
+    getUserById,
 };

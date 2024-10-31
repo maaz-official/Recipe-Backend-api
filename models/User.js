@@ -15,6 +15,7 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
+        required: false, // Changed to optional
     },
     isVerified: {
         type: Boolean,
@@ -30,12 +31,9 @@ const userSchema = new mongoose.Schema({
     },
     additionalInfo: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'AdditionalInfo', // Reference to the AdditionalInfo model
-    }],
-    addToFav: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Recipe',
-    }],
+        ref: 'AdditionalInfo',
+    }],       
+    addToFav: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Recipe' }], // Array of favorite recipe IDs
     profilePicture: String,
     isGuest: {
         type: Boolean,
@@ -56,7 +54,7 @@ userSchema.virtual('fullName').get(function () {
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) return next();
+    if (!this.isModified('password') || !this.password) return next(); // Skip hashing if password is not set
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
     next();
@@ -64,7 +62,7 @@ userSchema.pre('save', async function (next) {
 
 // Compare password
 userSchema.methods.matchPassword = async function (enteredPassword) {
-    return await bcrypt.compare(enteredPassword, this.password);
+    return this.password ? await bcrypt.compare(enteredPassword, this.password) : false; // Only compare if password exists
 };
 
 // Generate verification code
